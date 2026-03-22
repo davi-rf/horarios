@@ -13,7 +13,7 @@ CREATE TABLE professores (
 CREATE TABLE turmas (
     id INT AUTO_INCREMENT PRIMARY KEY,
     serie TINYINT UNSIGNED,
-    curso ENUM('AL', 'AP', 'AP_SUB', 'CTA', 'ENG', 'MA', 'PPGEDTS', 'TI', 'TQ', 'ZOO') NOT NULL,
+    curso ENUM('curso1', 'curso2') NOT NULL,
     letra ENUM('A', 'B', 'C'),
 
     CHECK (serie IS NULL OR serie BETWEEN 1 AND 10)
