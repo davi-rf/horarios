@@ -3,8 +3,8 @@
 <div align="center">
 <h1>Horarios</h1>
 
-<img src="https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54">
-<img src="https://img.shields.io/badge/mysql-4479A1.svg?style=for-the-badge&logo=mysql&logoColor=white">
+  <img src="https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54">
+  <img src="https://img.shields.io/badge/mysql-4479A1.svg?style=for-the-badge&logo=mysql&logoColor=white">
 </div>
 
 <p align="right">
@@ -44,25 +44,28 @@ Downloads/
 - mysql-connector-python
 - CSV nativo
 
-# Arquivos
+## Arquivos
 
-## `dados/*.csv`
+### `dados/*.csv`
 
 Arquivos em formato **CSV** que servem como a base de dados em formato bruto. Contêm as listagens estáticas de nomenclaturas de turmas, disciplinas, vínculos de aulas com professores e horários em texto simples.
 
-## `data_entry.py`
+### `data_entry.py`
 
 Script utilitário em Python responsável pela carga de dados ("Data Entry"). Ele lê as diversas planilhas contidas na pasta `dados/`, faz a ordenação pelas colunas-chave em memória, limpa o modelo ativando ou desativando chaves estrangeiras (usando os comandos `TRUNCATE` e `FOREIGN_KEY_CHECKS`) e injeta tudo de volta no servidor MySQL.
 
-## `horarios.sql`
+### `horarios.sql`
 
 Script DDL para criação da estrutura relacional. Contém as modelagens iniciais: exclui o banco se ele já existir, cria e seleciona o banco `horarios` e define a configuração das tabelas necessárias (`professores`, `turmas`, `aulas` e a tabela associativa `aula_professor`), incluindo integridades referenciais (_FOREIGN KEYS_) do sistema escolar.
 
-## `main.py`
+### `main.py`
 
 O corpo principal da aplicação. Executado no terminal de comandos, fornece uma interface interativa via menu numérico (`while True`). As requisições são processadas em tempo real com acesso direto ao banco MySQL local. As consultas (`queries`) priorizam o uso da diretiva `GROUP_CONCAT` para agrupar as exibições em tela.
 
-## `requirements.txt`
+### `requirements.txt`
 
 Um arquivo de manifesto de dependências do Python. Utilizado para documentar quais as bibliotecas externas (neste caso, `mysql-connector-python`) o usuário precisará instalar via `pip` antes de conseguir executar o aplicativo.
 
+# Licença
+
+Este projeto está sob a licença [MIT](/LICENSE)
