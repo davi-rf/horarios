@@ -1,7 +1,5 @@
-# horarios
-
 <div align="center">
-<h1>Horarios</h1>
+<h1>Horários</h1>
 
   <img src="https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54">
   <img src="https://img.shields.io/badge/mysql-4479A1.svg?style=for-the-badge&logo=mysql&logoColor=white">
@@ -21,9 +19,8 @@ Sistema interativo de terminal (CLI) em Python para consulta de horários escola
 # Estrutura do Projeto
 
 ```text
-Downloads/
+horarios/
 │
-├── .gitignore
 ├── dados/
 │   ├── aula_professor.csv
 │   ├── aulas.csv
@@ -32,6 +29,7 @@ Downloads/
 │
 ├── data_entry.py
 ├── horarios.sql
+├── LICENSE
 ├── main.py
 ├── README.md
 └── requirements.txt
