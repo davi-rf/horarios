@@ -61,4 +61,4 @@ O corpo principal da aplicação. Executado no terminal de comandos, fornece uma
 
 ## Licença
 
-Este projeto está sob a licença [MIT](/LICENSE)
+Este projeto está sob a licença [MIT](/LICENSE).
