@@ -42,7 +42,7 @@ def truncate(table):
 
 professores = ler_escrever('professores', lambda x: x['nome'])
 turmas = ler_escrever('turmas', lambda x: x['curso'])
-aulas = ler_escrever('aulas', lambda x: x['materia'])
+aulas = ler_escrever('aulas', lambda x: (x['turma_id'], x['dia_semana'], x['hora_inicio']))
 aula_professor = ler_escrever('aula_professor', lambda x: x['materia'])
 
 connection = connect(
