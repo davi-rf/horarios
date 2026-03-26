@@ -1,4 +1,20 @@
 from mysql.connector import connect
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI()
+
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=['*'],
+#     allow_credentials=True,
+#     allow_methods=['*'],
+#     allow_headers=['*'],
+# )
+
+@app.get('/')
+def read_root():
+    return {'status': 'CORS configurado!'}
 
 connection = connect(
     host='localhost',
@@ -133,53 +149,11 @@ def buscar_horarios(base):
             alvo = f'Prof(s): {prof}'
             
         print(f'[{dia_str}] Entrada: {entrada} | Saída: {saida} | {alvo}')
-        
-    print('\n')
 
 
-while True:
-    TRACOS = '-' * 45
-    print(f'''{TRACOS} MENU {TRACOS}
-
-Qual tipo de pesquisa deseja fazer?
-  1 - Aulas
-  2 - Horários de chegada e de saída
-  0 - Sair
-
-''')
-
-    try:
-        tipo = int(input('Sua escolha: ').strip()[0])
-    except (ValueError, IndexError):
-        print('Opção inválida.')
-        continue
-
-    if tipo == 0: break
-    if tipo not in (1, 2):
-        print('Opção inválida.')
-        continue
-
-    print('''
-Com base em que?
-  1 - Turma
-  2 - Professor
-  0 - Voltar
-''')
-
-    try:
-        base = int(input('Sua escolha: ').strip()[0])
-    except (ValueError, IndexError):
-        print('Opção inválida.')
-        continue
-
-    if base == 0: continue
-    if base not in (1, 2):
-        print('Opção inválida.')
-        continue
-
-    if tipo == 1: buscar_aulas(base)
-    elif tipo == 2: buscar_horarios(base)
-
+if __name__ == '__main__':
+    from uvicorn import run
+    run('main:app', host='0.0.0.0', reload=True)
 
 cursor.close()
 connection.close()
