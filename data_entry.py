@@ -42,8 +42,9 @@ def truncate(table):
 
 professores = ler_escrever('professores', lambda x: x['nome'])
 turmas = ler_escrever('turmas', lambda x: x['curso'])
-aulas = ler_escrever('aulas', lambda x: (x['turma_id'], x['dia_semana'], x['hora_inicio']))
-aula_professor = ler_escrever('aula_professor', lambda x: x['materia'])
+materias = ler_escrever('materias', lambda x: x['nome'])
+aulas = ler_escrever('aulas', lambda x: (x['dia_semana'], x['hora_inicio'], x['subturma']))
+aula_professor = ler_escrever('aula_professor', lambda x: x['professor_id'])
 
 connection = connect(
     host='localhost',
@@ -57,6 +58,7 @@ cursor = connection.cursor(dictionary=True)
 cursor.execute('SET FOREIGN_KEY_CHECKS = 0')
 cursor.execute('TRUNCATE TABLE professores')
 cursor.execute('TRUNCATE TABLE turmas')
+cursor.execute('TRUNCATE TABLE materias')
 cursor.execute('TRUNCATE TABLE aulas')
 cursor.execute('TRUNCATE TABLE aula_professor')
 cursor.execute('SET FOREIGN_KEY_CHECKS = 1')
@@ -65,6 +67,7 @@ connection.commit()
 
 inserir('professores', professores)
 inserir('turmas', turmas)
+inserir('materias', materias)
 inserir('aulas', aulas)
 inserir('aula_professor', aula_professor)
 

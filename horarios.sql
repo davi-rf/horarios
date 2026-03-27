@@ -19,19 +19,27 @@ CREATE TABLE turmas (
     CHECK (serie IS NULL OR serie BETWEEN 1 AND 10)
 );
 
+CREATE TABLE materias (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL
+)
+
 CREATE TABLE aulas (
     id INT AUTO_INCREMENT PRIMARY KEY,
     turma_id INT,
-    materia VARCHAR(100) NOT NULL,
+    materia_id INT,
 
     dia_semana TINYINT UNSIGNED NOT NULL,
     hora_inicio TIME NOT NULL,
     hora_fim TIME NOT NULL,
 
+    subturma ENUM('A', 'B'),
+
     CHECK (dia_semana BETWEEN 0 AND 4),
     CHECK (hora_inicio < hora_fim),
 
-    FOREIGN KEY (turma_id) REFERENCES turmas(id) ON UPDATE CASCADE ON DELETE CASCADE
+    FOREIGN KEY (turma_id) REFERENCES turmas(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (materia_id) REFERENCES materias(id) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
 CREATE TABLE aula_professor (

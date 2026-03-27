@@ -1,8 +1,7 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from mysql.connector import connect, Error
-from typing import Optional
-from datetime import timedelta
+from typing import Optional, List
 
 app = FastAPI(title='API de Horários Escolares')
 
@@ -22,65 +21,66 @@ db_config = {
     'charset': 'utf8mb4'
 }
 
-BASE_QUERY = '''
-    SELECT a.id, a.dia_semana, a.hora_inicio, a.hora_fim, a.materia,
-           t.serie, t.curso, t.letra,
-           GROUP_CONCAT(p.nome SEPARATOR ', ') as professores
-    FROM aulas a
-    JOIN turmas t ON a.turma_id = t.id
-    LEFT JOIN aula_professor ap ON a.id = ap.aula_id
-    LEFT JOIN professores p ON ap.professor_id = p.id
-'''
 
+# ================= DB =================
 def get_db_connection():
     try:
         return connect(**db_config)
     except Error:
-        raise HTTPException(status_code=500, detail='Erro de conexão com o banco')
+        raise HTTPException(500, 'Erro no banco')
+
+
+def formatar_hora(h):
+    return str(h)[:-3] if h else None
+
+
+def parse_turma(turma_str: str):
+    try:
+        serie, curso, letra, subturma = turma_str.split('_')
+        return int(serie), curso, letra, subturma
+    except:
+        raise HTTPException(400, 'Formato inválido de turma')
+
+
+# ================= BASE QUERY =================
+BASE_QUERY = '''
+    SELECT
+        a.id,
+        a.dia_semana,
+        a.hora_inicio,
+        a.hora_fim,
+        m.nome as materia,
+        GROUP_CONCAT(p.nome SEPARATOR ', ') as professores,
+        t.serie,
+        t.curso,
+        t.letra,
+        a.subturma
+    FROM aulas a
+    JOIN turmas t ON a.turma_id = t.id
+    JOIN materias m ON a.materia_id = m.id
+    LEFT JOIN aula_professor ap ON a.id = ap.aula_id
+    LEFT JOIN professores p ON ap.professor_id = p.id
+'''
 
 
 @app.get('/')
-def read_root():
-    return {'status': 'API Online', 'docs': '/docs'}
+def root():
+    return {'status': 'ok', 'docs': '/docs'}
+
 
 @app.get('/aulas')
-def listar_aulas(
-    tipo: int = Query(...),
-    valor: str = Query(...),
-    dia: Optional[int] = Query(None, ge=0, le=4)
-):
-    if tipo not in (1, 2):
-        raise HTTPException(status_code=400, detail='Tipo inválido')
-
+def todas_aulas():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
     try:
-        if tipo == 1:
-            filtro_sql = 't.id = %s'
-            filtro_valor = int(valor)
-        else:
-            filtro_sql = 'p.nome LIKE %s'
-            filtro_valor = f'%{valor}%'
-
-        query = f'{BASE_QUERY} WHERE {filtro_sql}'
-        params = [filtro_valor]
-
-        if dia is not None:
-            query += ' AND a.dia_semana = %s'
-            params.append(dia)
-
-        query += ' GROUP BY a.id ORDER BY a.dia_semana, a.hora_inicio'
-
-        cursor.execute(query, tuple(params))
+        query = BASE_QUERY + ' GROUP BY a.id ORDER BY a.dia_semana, a.hora_inicio'
+        cursor.execute(query)
         aulas = cursor.fetchall()
 
-        if not aulas:
-            raise HTTPException(status_code=404, detail='Nenhuma aula encontrada')
-
-        for aula in aulas:
-            aula['hora_inicio'] = str(aula['hora_inicio'])[:-3]
-            aula['hora_fim'] = str(aula['hora_fim'])[:-3]
+        for a in aulas:
+            a['hora_inicio'] = formatar_hora(a['hora_inicio'])
+            a['hora_fim'] = formatar_hora(a['hora_fim'])
 
         return aulas
 
@@ -88,63 +88,230 @@ def listar_aulas(
         cursor.close()
         conn.close()
 
-@app.get('/horarios-resumo')
-def resumo_entrada_saida(
-    tipo: int = Query(...),
-    valor: str = Query(...),
-    dia: Optional[int] = Query(None, ge=0, le=4)
+
+@app.get('/professores')
+def listar_professores():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute('SELECT nome FROM professores ORDER BY nome')
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.get('/turmas')
+def listar_turmas():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute('SELECT serie, curso, letra FROM turmas')
+        turmas = cursor.fetchall()
+
+        for t in turmas:
+            t['turma'] = f"{t['serie']}_{t['curso']}_{t['letra']}"
+
+        return turmas
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.get('/cursos')
+def listar_cursos():
+    return ['curso1', 'curso2']
+
+
+@app.get('/aulas/turma')
+def aulas_por_turma(
+    turma: str = Query(...),
+    dia: Optional[int] = Query(None, ge=0, le=4),
+    subturma: Optional[str] = None
 ):
-    if tipo not in (1, 2):
-        raise HTTPException(status_code=400, detail='Tipo inválido')
+    serie, curso, letra, sub = parse_turma(turma)
 
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
     try:
-        if tipo == 1:
-            query = '''
-                SELECT a.dia_semana, t.serie, t.curso, t.letra, 
-                       MIN(a.hora_inicio) as entrada, MAX(a.hora_fim) as saida
-                FROM aulas a
-                JOIN turmas t ON a.turma_id = t.id
-                WHERE t.id = %s
-            '''
-            filtro_valor = int(valor)
-            group_by = ' GROUP BY a.dia_semana, t.id'
-        else:
-            query = '''
-                SELECT a.dia_semana, p.nome as professor, 
-                       MIN(a.hora_inicio) as entrada, MAX(a.hora_fim) as saida
-                FROM aulas a
-                JOIN aula_professor ap ON a.id = ap.aula_id
-                JOIN professores p ON ap.professor_id = p.id
-                WHERE p.nome LIKE %s
-            '''
-            filtro_valor = f'%{valor}%'
-            group_by = ' GROUP BY a.dia_semana, p.id'
-
-        params = [filtro_valor]
+        query = BASE_QUERY + '''
+            WHERE t.serie=%s AND t.curso=%s AND t.letra=%s
+        '''
+        params = [serie, curso, letra]
 
         if dia is not None:
-            query += ' AND a.dia_semana = %s'
+            query += ' AND a.dia_semana=%s'
             params.append(dia)
 
-        query += group_by + ' ORDER BY a.dia_semana'
+        if subturma:
+            query += ' AND (a.subturma=%s OR a.subturma IS NULL)'
+            params.append(subturma)
+
+        query += ' GROUP BY a.id ORDER BY a.dia_semana, a.hora_inicio'
 
         cursor.execute(query, tuple(params))
-        resultados = cursor.fetchall()
+        aulas = cursor.fetchall()
 
-        if not resultados:
-            raise HTTPException(status_code=404, detail='Nenhum horário encontrado')
+        for a in aulas:
+            a['hora_inicio'] = formatar_hora(a['hora_inicio'])
+            a['hora_fim'] = formatar_hora(a['hora_fim'])
 
-        for r in resultados:
-            r['entrada'] = str(r['entrada'])[:-3]
-            r['saida'] = str(r['saida'])[:-3]
+        return aulas
 
-            if tipo == 1:
-                r['alvo'] = f"{r['serie']}º {r['curso']} {r['letra'] or ''}".strip()
+    finally:
+        cursor.close()
+        conn.close()
 
-        return resultados
+
+@app.get('/aulas/professor')
+def aulas_por_professor(
+    professor: str,
+    dia: Optional[int] = Query(None, ge=0, le=4),
+    subturma: Optional[str] = None
+):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        query = BASE_QUERY + '''
+            WHERE p.nome LIKE %s
+        '''
+        params = [f'%{professor}%']
+
+        if dia is not None:
+            query += ' AND a.dia_semana=%s'
+            params.append(dia)
+
+        if subturma:
+            query += ' AND (a.subturma=%s OR a.subturma IS NULL)'
+            params.append(subturma)
+
+        query += ' GROUP BY a.id ORDER BY a.dia_semana, a.hora_inicio'
+
+        cursor.execute(query, tuple(params))
+        aulas = cursor.fetchall()
+
+        for a in aulas:
+            a['hora_inicio'] = formatar_hora(a['hora_inicio'])
+            a['hora_fim'] = formatar_hora(a['hora_fim'])
+
+        return aulas
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.get('/entrada-saida/turma')
+def entrada_saida_turma(turma: str):
+    serie, curso, letra, _ = parse_turma(turma)
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        query = '''
+            SELECT
+                a.dia_semana,
+                MIN(a.hora_inicio) entrada,
+                MAX(a.hora_fim) saida
+            FROM aulas a
+            JOIN turmas t ON a.turma_id=t.id
+            WHERE t.serie=%s AND t.curso=%s AND t.letra=%s
+            GROUP BY a.dia_semana
+            ORDER BY a.dia_semana
+        '''
+
+        cursor.execute(query, (serie, curso, letra))
+        res = cursor.fetchall()
+
+        for r in res:
+            r['entrada'] = formatar_hora(r['entrada'])
+            r['saida'] = formatar_hora(r['saida'])
+
+        return res
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.get('/entrada-saida/professor')
+def entrada_saida_professor(professor: str):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        query = '''
+            SELECT
+                a.dia_semana,
+                MIN(a.hora_inicio) entrada,
+                MAX(a.hora_fim) saida
+            FROM aulas a
+            JOIN aula_professor ap ON a.id=ap.aula_id
+            JOIN professores p ON ap.professor_id=p.id
+            WHERE p.nome LIKE %s
+            GROUP BY a.dia_semana
+            ORDER BY a.dia_semana
+        '''
+
+        cursor.execute(query, (f'%{professor}%',))
+        res = cursor.fetchall()
+
+        for r in res:
+            r['entrada'] = formatar_hora(r['entrada'])
+            r['saida'] = formatar_hora(r['saida'])
+
+        return res
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.get('/juntos')
+def juntos(
+    professores: Optional[List[str]] = Query(None),
+    turmas: Optional[List[str]] = Query(None)
+):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        filtros = []
+        params = []
+
+        if professores:
+            filtros.append('p.nome IN (%s)' % ','.join(['%s'] * len(professores)))
+            params.extend(professores)
+
+        if turmas:
+            conds = []
+            for t in turmas:
+                serie, curso, letra, _ = parse_turma(t)
+                conds.append('(t.serie=%s AND t.curso=%s AND t.letra=%s)')
+                params.extend([serie, curso, letra])
+            filtros.append('(' + ' OR '.join(conds) + ')')
+
+        where = ('WHERE ' + ' OR '.join(filtros)) if filtros else ''
+
+        query = BASE_QUERY + f'''
+            {where}
+            GROUP BY a.id
+            ORDER BY a.dia_semana, a.hora_inicio
+        '''
+
+        cursor.execute(query, tuple(params))
+        res = cursor.fetchall()
+
+        for r in res:
+            r['hora_inicio'] = formatar_hora(r['hora_inicio'])
+            r['hora_fim'] = formatar_hora(r['hora_fim'])
+
+        return res
 
     finally:
         cursor.close()
