@@ -90,11 +90,11 @@ def todas_aulas():
 @app.get('/professores')
 def listar_professores():
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
     try:
         cursor.execute('SELECT nome FROM professores ORDER BY nome')
-        return cursor.fetchall()
+        return [nome[0] for nome in cursor.fetchall()]
     finally:
         cursor.close()
         conn.close()
@@ -110,7 +110,7 @@ def listar_turmas():
         turmas = cursor.fetchall()
 
         for t in turmas:
-            t['turma'] = f"{t['serie']}_{t['curso']}_{t['letra']}"
+            t['turma'] = f"{t['serie']}_{t['curso']}_{t['letra']}" if t['letra'] is not None else f"{t['serie']}_{t['curso']}"
 
         return turmas
     finally:
@@ -120,7 +120,15 @@ def listar_turmas():
 
 @app.get('/cursos')
 def listar_cursos():
-    return ['EM']
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('SELECT DISTINCT(curso) FROM turmas')
+        return [curso[0] for curso in cursor.fetchall()]
+    finally:
+        cursor.close()
+        conn.close()
 
 
 @app.get('/aulas/turma')
