@@ -25,6 +25,7 @@ horarios/
 ├── dados/
 │   ├── aula_professor.csv
 │   ├── aulas.csv
+│   ├── materias.csv
 │   ├── professores.csv
 │   └── turmas.csv
 │
