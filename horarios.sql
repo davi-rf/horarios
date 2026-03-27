@@ -1,5 +1,5 @@
 DROP DATABASE IF EXISTS horarios;
-CREATE DATABASE IF NOT EXISTS horarios
+CREATE DATABASE horarios
 DEFAULT CHARACTER SET utf8mb4
 COLLATE utf8mb4_unicode_ci;
 
@@ -22,7 +22,7 @@ CREATE TABLE turmas (
 CREATE TABLE materias (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(100) NOT NULL
-)
+);
 
 CREATE TABLE aulas (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -35,11 +35,11 @@ CREATE TABLE aulas (
 
     subturma ENUM('A', 'B'),
 
-    CHECK (dia_semana BETWEEN 0 AND 4),
+    CHECK (dia_semana BETWEEN 1 AND 5),
     CHECK (hora_inicio < hora_fim),
 
-    FOREIGN KEY (turma_id) REFERENCES turmas(id) ON UPDATE CASCADE ON DELETE CASCADE,
-    FOREIGN KEY (materia_id) REFERENCES materias(id) ON UPDATE CASCADE ON DELETE CASCADE
+    FOREIGN KEY (turma_id) REFERENCES turmas(id) ON DELETE CASCADE,
+    FOREIGN KEY (materia_id) REFERENCES materias(id) ON DELETE CASCADE
 );
 
 CREATE TABLE aula_professor (
@@ -47,6 +47,6 @@ CREATE TABLE aula_professor (
     professor_id INT,
 
     PRIMARY KEY (aula_id, professor_id),
-    FOREIGN KEY (aula_id) REFERENCES aulas(id) ON UPDATE CASCADE ON DELETE CASCADE,
-    FOREIGN KEY (professor_id) REFERENCES professores(id) ON UPDATE CASCADE ON DELETE CASCADE
+    FOREIGN KEY (aula_id) REFERENCES aulas(id) ON DELETE CASCADE,
+    FOREIGN KEY (professor_id) REFERENCES professores(id) ON DELETE CASCADE
 );
