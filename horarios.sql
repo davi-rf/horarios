@@ -23,14 +23,14 @@ CREATE TABLE cursos (
 CREATE TABLE turmas (
     id INT AUTO_INCREMENT PRIMARY KEY,
     serie TINYINT UNSIGNED,
-    curso_id INT(100) NOT NULL,
+    curso_id INT NOT NULL,
     letra ENUM('A', 'B', 'C'),
 
     CHECK (serie IS NULL OR serie BETWEEN 1 AND 10),
 
     UNIQUE (serie, curso_id, letra),
 
-    FOREIGN KEY curso_id REFERENCES cursos(id) ON DELETE CASCADE ON UPDATE CASCADE
+    FOREIGN KEY (curso_id) REFERENCES cursos(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE aulas (

@@ -1,4 +1,4 @@
-serie,curso,letra
-1,EM,
-2,EM,
-3,EM,
+serie,curso_id,letra
+1,1,
+2,1,
+3,1,
