@@ -102,8 +102,10 @@ def professores(nome: Optional[str] = None):
     try:
         if nome:
             cursor.execute(
-                'SELECT nome FROM professores WHERE nome LIKE %s ORDER BY nome',
-                (f'%{nome}%',)
+                '''SELECT nome FROM professores 
+                   WHERE MATCH(nome) AGAINST (%s IN BOOLEAN MODE)
+                   ORDER BY nome''',
+                (f'+{nome}*',)
             )
         else:
             cursor.execute('SELECT nome FROM professores ORDER BY nome')
@@ -122,8 +124,10 @@ def materias(nome: Optional[str] = None):
     try:
         if nome:
             cursor.execute(
-                'SELECT nome FROM materias WHERE nome LIKE %s ORDER BY nome',
-                (f'%{nome}%',)
+                '''SELECT nome FROM materias 
+                   WHERE MATCH(nome) AGAINST (%s IN BOOLEAN MODE)
+                   ORDER BY nome''',
+                (f'+{nome}*',)
             )
         else:
             cursor.execute('SELECT nome FROM materias ORDER BY nome')
@@ -142,8 +146,10 @@ def cursos(nome: Optional[str] = None):
     try:
         if nome:
             cursor.execute(
-                'SELECT nome FROM cursos WHERE nome LIKE %s ORDER BY nome',
-                (f'%{nome}%',)
+                '''SELECT nome FROM cursos 
+                   WHERE MATCH(nome) AGAINST (%s IN BOOLEAN MODE)
+                   ORDER BY nome''',
+                (f'+{nome}*',)
             )
         else:
             cursor.execute('SELECT nome FROM cursos ORDER BY nome')
@@ -166,8 +172,8 @@ def turmas(turma: Optional[str] = None):
         if turma:
             serie, curso, letra, _ = parse_turma(turma)
 
-            where.append('c.nome LIKE %s')
-            params.append(f'%{curso}%')
+            where.append('MATCH(c.nome) AGAINST (%s IN BOOLEAN MODE)')
+            params.append(f'+{curso}*')
 
             if serie:
                 where.append('t.serie=%s')
@@ -216,8 +222,8 @@ def aulas(
     if turma:
         serie, curso, letra, subturma = parse_turma(turma)
 
-        where.append('c.nome LIKE %s')
-        params.append(f'%{curso}%')
+        where.append('MATCH(c.nome) AGAINST (%s IN BOOLEAN MODE)')
+        params.append(f'+{curso}*')
 
         if serie:
             where.append('t.serie=%s')
@@ -232,16 +238,16 @@ def aulas(
             params.append(subturma)
 
     if professor:
-        where.append('p.nome LIKE %s')
-        params.append(f'%{professor}%')
+        where.append('MATCH(p.nome) AGAINST (%s IN BOOLEAN MODE)')
+        params.append(f'+{professor}*')
 
     if dia:
         where.append('a.dia_semana=%s')
         params.append(dia)
 
     if materia:
-        where.append('m.nome=%s')
-        params.append(materia)
+        where.append('MATCH(m.nome) AGAINST (%s IN BOOLEAN MODE)')
+        params.append(f'+{materia}*')
 
     if hora_inicio:
         where.append('a.hora_inicio=%s')
@@ -292,8 +298,8 @@ def entrada_saida(
     if turma:
         serie, curso, letra, subturma = parse_turma(turma)
 
-        where.append('c.nome LIKE %s')
-        params.append(f'%{curso}%')
+        where.append('MATCH(c.nome) AGAINST (%s IN BOOLEAN MODE)')
+        params.append(f'+{curso}*')
 
         if serie:
             where.append('t.serie=%s')
@@ -308,8 +314,8 @@ def entrada_saida(
             params.append(subturma)
 
     if professor:
-        where.append('p.nome LIKE %s')
-        params.append(f'%{professor}%')
+        where.append('MATCH(p.nome) AGAINST (%s IN BOOLEAN MODE)')
+        params.append(f'+{professor}*')
 
     if dia:
         where.append('a.dia_semana=%s')
