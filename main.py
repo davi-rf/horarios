@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from mysql.connector import connect, Error
+from mysql.connector import pooling, Error
 from typing import Optional
 
 app = FastAPI()
@@ -13,24 +13,24 @@ app.add_middleware(
     allow_headers=['*'],
 )
 
-db_config = {
-    'host': 'localhost',
-    'user': 'root',
-    'password': '',
-    'database': 'horarios',
-}
-
+pool = pooling.MySQLConnectionPool(
+    pool_name="mypool",
+    pool_size=5,
+    host='localhost',
+    user='root',
+    password='',
+    database='horarios'
+)
 
 def get_db():
     try:
-        return connect(**db_config)
+        return pool.get_connection()
     except Error:
         raise HTTPException(500, 'Erro no banco')
 
 
 def fmt(h):
     return str(h)[:-3] if h else None
-
 
 def parse_turma(t: str):
     partes = t.split('_')
