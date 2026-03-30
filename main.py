@@ -15,7 +15,7 @@ app.add_middleware(
 
 pool = pooling.MySQLConnectionPool(
     pool_name="mypool",
-    pool_size=5,
+    pool_size=6,
     host='localhost',
     user='root',
     password='',
@@ -29,8 +29,7 @@ def get_db():
         raise HTTPException(500, 'Erro no banco')
 
 
-def fmt(h):
-    return str(h)[:-3] if h else None
+fmt = lambda h: str(h)[:-3] if h else None
 
 
 def parse_turma(t: str):
