@@ -63,7 +63,7 @@ CREATE TABLE aulas (
     hora_fim TIME NOT NULL,
 
     subturma ENUM('A', 'B'),
-    sala_id INT, -- sobrescreve sala da turma (opcional)
+    sala_id INT,
 
     CHECK (dia_semana BETWEEN 1 AND 5),
     CHECK (hora_inicio < hora_fim),
