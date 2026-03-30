@@ -32,6 +32,7 @@ def get_db():
 def fmt(h):
     return str(h)[:-3] if h else None
 
+
 def parse_turma(t: str):
     partes = t.split('_')
 
@@ -68,11 +69,19 @@ SELECT
     t.serie,
     c.nome curso,
     t.letra,
-    a.subturma
+    a.subturma,
+
+    COALESCE(sa.nome, st.nome) AS sala,
+    COALESCE(sa.tipo, st.tipo) AS tipo_sala
+
 FROM aulas a
 JOIN turmas t ON a.turma_id = t.id
 JOIN cursos c ON t.curso_id = c.id
 JOIN materias m ON a.materia_id = m.id
+
+LEFT JOIN salas sa ON a.sala_id = sa.id
+LEFT JOIN salas st ON t.sala_id = st.id
+
 LEFT JOIN aula_professor ap ON a.id = ap.aula_id
 LEFT JOIN professores p ON ap.professor_id = p.id
 '''
@@ -88,6 +97,7 @@ def root():
             '/materias',
             '/cursos',
             '/turmas',
+            '/salas',
             '/aulas',
             '/entrada-saida'
         ]
@@ -98,7 +108,6 @@ def root():
 def professores(nome: Optional[str] = None):
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
-
     try:
         if nome:
             cursor.execute(
@@ -120,7 +129,6 @@ def professores(nome: Optional[str] = None):
 def materias(nome: Optional[str] = None):
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
-
     try:
         if nome:
             cursor.execute(
@@ -142,7 +150,6 @@ def materias(nome: Optional[str] = None):
 def cursos(nome: Optional[str] = None):
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
-
     try:
         if nome:
             cursor.execute(
@@ -164,7 +171,6 @@ def cursos(nome: Optional[str] = None):
 def turmas(turma: Optional[str] = None):
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
-
     try:
         where = []
         params = []
@@ -186,10 +192,7 @@ def turmas(turma: Optional[str] = None):
         where_sql = f'WHERE {" AND ".join(where)}' if where else ''
 
         cursor.execute(f'''
-        SELECT
-            t.serie,
-            c.nome curso,
-            t.letra
+        SELECT t.serie, c.nome curso, t.letra
         FROM turmas t
         JOIN cursos c ON t.curso_id = c.id
         {where_sql}
@@ -207,6 +210,37 @@ def turmas(turma: Optional[str] = None):
         conn.close()
 
 
+@app.get('/salas')
+def salas(nome: Optional[str] = None, tipo: Optional[str] = None):
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        where = []
+        params = []
+
+        if nome:
+            where.append('MATCH(nome) AGAINST (%s IN BOOLEAN MODE)')
+            params.append(f'+{nome}*')
+
+        if tipo:
+            where.append('tipo = %s')
+            params.append(tipo)
+
+        where_sql = f'WHERE {" AND ".join(where)}' if where else ''
+
+        cursor.execute(f'''
+            SELECT nome, tipo
+            FROM salas
+            {where_sql}
+            ORDER BY nome
+        ''', tuple(params))
+
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+
+
 @app.get('/aulas')
 def aulas(
     turma: Optional[str] = None,
@@ -214,7 +248,9 @@ def aulas(
     dia: Optional[int] = Query(None, ge=1, le=5),
     materia: Optional[str] = None,
     hora_inicio: Optional[str] = None,
-    hora_fim: Optional[str] = None
+    hora_fim: Optional[str] = None,
+    sala: Optional[str] = None,
+    tipo_sala: Optional[str] = None,
 ):
     where = []
     params = []
@@ -256,6 +292,14 @@ def aulas(
     if hora_fim:
         where.append('a.hora_fim=%s')
         params.append(hora_fim)
+
+    if sala:
+        where.append('MATCH(COALESCE(sa.nome, st.nome)) AGAINST (%s IN BOOLEAN MODE)')
+        params.append(f'+{sala}*')
+
+    if tipo_sala:
+        where.append('COALESCE(sa.tipo, st.tipo) = %s')
+        params.append(tipo_sala)
 
     where_sql = f'WHERE {" AND ".join(where)}' if where else ''
 
