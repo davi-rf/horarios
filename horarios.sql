@@ -79,6 +79,10 @@ CREATE TABLE turmas (
     serie TINYINT UNSIGNED,
     curso_id INT NOT NULL,
     letra ENUM('A', 'B', 'C'),
+<<<<<<< HEAD
+=======
+
+>>>>>>> 1c8c611206e5298cbb89682f04a4e53af625bfbd
     sala_id INT,
 
     CHECK (serie IS NULL OR serie BETWEEN 1 AND 10),
