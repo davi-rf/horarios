@@ -24,7 +24,7 @@ app.add_middleware(
 
 pool = pooling.MySQLConnectionPool(
     pool_name='mypool',
-    pool_size=5,
+    pool_size=6,
     host='localhost',
     user='root',
     password='',
@@ -45,6 +45,8 @@ def create_token(data: dict):
     payload = data.copy()
     payload['exp'] = datetime.utcnow() + timedelta(hours=8)
     return jwt.encode(payload, SECRET, algorithm=ALGO)
+
+fmt = lambda h: str(h)[:-3] if h else None
 
 
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
