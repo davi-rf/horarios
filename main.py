@@ -8,7 +8,7 @@ import jwt
 import bcrypt
 from datetime import datetime, timedelta
 
-SECRET = 'SECRET_KEY'
+SECRET = 'Davisao-Miseravel-Pecador'
 ALGO = 'HS256'
 
 app = FastAPI(title='Horarios', version='1.0.0')
@@ -23,7 +23,7 @@ app.add_middleware(
 
 pool = pooling.MySQLConnectionPool(
     pool_name='mypool',
-    pool_size=6,
+    pool_size=4,
     host='localhost',
     user='root',
     password='',
@@ -44,10 +44,8 @@ def create_token(data):
     return jwt.encode(payload, SECRET, algorithm=ALGO)
 
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    try:
-        return jwt.decode(credentials.credentials, SECRET, algorithms=[ALGO])
-    except:
-        raise HTTPException(401, 'Token invalido')
+    try: return jwt.decode(credentials.credentials, SECRET, algorithms=[ALGO])
+    except: raise HTTPException(401, 'Token invalido')
 
 def admin_required(user=Depends(verify_token)):
     if user.get('tipo') != 'admin':
