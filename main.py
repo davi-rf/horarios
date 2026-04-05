@@ -19,7 +19,7 @@ ALGO = 'HS256'
 app = FastAPI(
     title='Horarios',
     description='API para gerenciamento de horários escolares',
-    version='1.0.0'
+    version='2.0.0'
 )
 
 app.add_middleware(
@@ -43,10 +43,16 @@ class AddUser(BaseModel):
     tipo: str
     professor_id: Optional[int] = None
 
+class UpdateUser(BaseModel):
+    email: Optional[str] = None
+    password: Optional[str] = None
+    tipo: Optional[str] = None
+    professor_id: Optional[int] = None
+
 class Nome(BaseModel):
     nome: str
 
-class Turma(BaseModel):
+class TurmaCreate(BaseModel):
     serie: Optional[int] = None
     curso_id: int
     letra: Optional[str] = None
@@ -104,6 +110,17 @@ def login(data: Login, db: Session=Depends(get_db)):
     token = create_token({'user_id': user.id, 'tipo': user.tipo})
     return {'token': token}
 
+@app.get('/users')
+def listar_users(db: Session=Depends(get_db), user=Depends(admin_required)):
+    users = db.query(Usuario).all()
+    return [
+        {
+            'id': u.id,
+            'email': u.email,
+            'tipo': u.tipo
+        } for u in users
+    ]
+
 @app.post('/users')
 def add_user(data: AddUser, db: Session=Depends(get_db), user=Depends(admin_required)):
     if data.tipo not in ['admin', 'professor']:
@@ -134,6 +151,54 @@ def add_user(data: AddUser, db: Session=Depends(get_db), user=Depends(admin_requ
 
     db.commit()
     return {'id': new_user.id}
+
+@app.put('/users/{id}')
+def update_user(id: int, data: UpdateUser, db: Session=Depends(get_db), user=Depends(admin_required)):
+    user_to_update = db.query(Usuario).filter(Usuario.id == id).first()
+    if not user_to_update:
+        raise HTTPException(404, 'Usuario nao encontrado')
+
+    if data.email:
+        if db.query(Usuario).filter(Usuario.email == data.email, Usuario.id != id).first():
+            raise HTTPException(400, 'Email ja existe')
+        user_to_update.email = data.email
+
+    if data.password:
+        user_to_update.password_hash = bcrypt.hashpw(data.password.encode(), bcrypt.gensalt()).decode()
+
+    if data.tipo:
+        if data.tipo not in ['admin', 'professor']:
+            raise HTTPException(400, 'Tipo invalido')
+        user_to_update.tipo = data.tipo
+
+    if data.professor_id is not None:
+        prof = db.query(Professor).filter(Professor.id == data.professor_id).first()
+        if not prof or (prof.usuario_id and prof.usuario_id != id):
+            raise HTTPException(400, 'Professor invalido')
+        
+        if user_to_update.tipo == 'professor' and user_to_update.professor:
+            user_to_update.professor.usuario_id = None
+        
+        if data.tipo == 'professor':
+            prof.usuario_id = id
+        else:
+            prof.usuario_id = None
+
+    db.commit()
+    return {'ok': True}
+
+@app.delete('/users/{id}')
+def delete_user(id: int, db: Session=Depends(get_db), user=Depends(admin_required)):
+    user_to_delete = db.query(Usuario).filter(Usuario.id == id).first()
+    if not user_to_delete:
+        raise HTTPException(404, 'Usuario nao encontrado')
+
+    if user_to_delete.tipo == 'professor' and user_to_delete.professor:
+        user_to_delete.professor.usuario_id = None
+
+    db.delete(user_to_delete)
+    db.commit()
+    return {'ok': True}
 
 
 @app.get('/professores')
@@ -289,7 +354,7 @@ def listar_turmas(db: Session=Depends(get_db)):
     ]
 
 @app.post('/turmas')
-def criar_turma(data: Turma, db: Session=Depends(get_db), user=Depends(admin_required)):
+def criar_turma(data: TurmaCreate, db: Session = Depends(get_db), user=Depends(admin_required)):
     new_turma = Turma(
         serie=data.serie,
         curso_id=data.curso_id,
@@ -301,7 +366,7 @@ def criar_turma(data: Turma, db: Session=Depends(get_db), user=Depends(admin_req
     return {'id': new_turma.id}
 
 @app.put('/turmas/{id}')
-def atualizar_turma(id: int, data: Turma, db: Session=Depends(get_db), user=Depends(admin_required)):
+def atualizar_turma(id: int, data: TurmaCreate, db: Session = Depends(get_db), user=Depends(admin_required)):
     turma = db.query(Turma).filter(Turma.id == id).first()
     if not turma:
         raise HTTPException(404, 'Turma nao encontrada')

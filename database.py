@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker
 from models import Base
 
 DATABASE_URL = 'mysql+pymysql://root:@localhost/horarios'

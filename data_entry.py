@@ -3,12 +3,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from csv import DictReader, DictWriter
 
-from models import Base, Usuario, Professor, Materia, Curso, Sala, Turma, Aula, RestricaoCurso, RestricaoProfessor
-from models import professor_materia_table, aula_professor_table
+from models import *
 
 DATA_DIR = 'dados/'
 
-DATABASE_URL = "mysql+pymysql://root:@localhost/horarios"
+DATABASE_URL = 'mysql+pymysql://root:@localhost/horarios'
 engine = create_engine(DATABASE_URL, echo=False)
 
 Base.metadata.create_all(bind=engine)
